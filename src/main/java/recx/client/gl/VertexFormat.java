@@ -20,6 +20,7 @@ import java.lang.foreign.MemorySegment;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * @author squid233
@@ -56,8 +57,20 @@ public final class VertexFormat {
         this.stride = offset;
     }
 
-    public void enableAttributes() {
-        elementMap.forEach((name, element) -> element.enableAttrib(stride, offsetMap.get(name)));
+    public void specificPointers() {
+        elementMap.forEach((name, element) -> element.specificPointer(stride, offsetMap.get(name)));
+    }
+
+    public void forEachElement(BiConsumer<? super String, ? super VertexElement> action) {
+        elementMap.forEach(action);
+    }
+
+    public VertexElement getElement(String name) {
+        return elementMap.get(name);
+    }
+
+    public MemorySegment getOffset(String name) {
+        return offsetMap.get(name);
     }
 
     public int stride() {

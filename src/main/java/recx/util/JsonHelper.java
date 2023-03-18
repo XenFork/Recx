@@ -36,6 +36,14 @@ public final class JsonHelper {
         return element.getAsString();
     }
 
+    public static int getInt(JsonArray array, int index) {
+        final JsonElement element = array.get(index);
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IllegalArgumentException("array[" + index + "] isn't a number");
+        }
+        return element.getAsInt();
+    }
+
     public static float getFloat(JsonArray array, int index) {
         final JsonElement element = array.get(index);
         if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {

@@ -1,0 +1,22 @@
+{
+  "vertex": "core/position_color_tex",
+  "fragment": "core/position_color_tex",
+  "uniforms": {
+    "ProjectionViewMatrix": {
+      "type": "mat4",
+      "values": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    },
+    "ModelMatrix": {
+      "type": "mat4",
+      "values": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    },
+    "ColorModulator": {
+      "type": "vec4",
+      "values": [1.0, 1.0, 1.0, 1.0]
+    },
+    "Sampler0": {
+      "type": "int",
+      "values": [0]
+    }
+  }
+}

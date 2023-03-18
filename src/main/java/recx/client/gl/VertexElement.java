@@ -41,7 +41,7 @@ public enum VertexElement {
         this.normalized = normalized;
     }
 
-    public void enableAttrib(int stride, MemorySegment pointer) {
+    public void specificPointer(int stride, MemorySegment pointer) {
         GL.enableVertexAttribArray(index);
         GL.vertexAttribPointer(index, size, type.enumValue(), normalized, stride, pointer);
     }

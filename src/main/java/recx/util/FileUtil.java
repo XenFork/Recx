@@ -27,9 +27,7 @@ import java.util.Objects;
  * @since 0.1.0
  */
 public final class FileUtil {
-    private static final StackWalker WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-
-    public static String readString(InputStream stream) throws IOException {
+    private static String readString(InputStream stream) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
             final StringBuilder sb = new StringBuilder(512);
             String line = reader.readLine();
@@ -44,8 +42,12 @@ public final class FileUtil {
     }
 
     public static String readString(ClassLoader loader, String filename) throws IOException {
-        return readString(Objects.requireNonNull(loader.getResourceAsStream(filename),
-            "Failed to get resource '" + filename + '\''));
+        try {
+            return readString(Objects.requireNonNull(loader.getResourceAsStream(filename),
+                "Failed to get resource '" + filename + '\''));
+        } catch (Exception e) {
+            throw new IOException("Failed to load " + filename, e);
+        }
     }
 
     public static String readString(Class<?> cls, String filename) throws IOException {
@@ -53,6 +55,6 @@ public final class FileUtil {
     }
 
     public static String readString(String filename) throws IOException {
-        return readString(WALKER.getCallerClass(), filename);
+        return readString(Util.WALKER.getCallerClass(), filename);
     }
 }

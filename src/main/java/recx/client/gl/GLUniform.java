@@ -34,6 +34,7 @@ import java.util.Locale;
  * @since 0.1.0
  */
 public final class GLUniform implements AutoCloseable {
+    public static final int TYPE_INT = 0;
     public static final int TYPE_VEC4 = 7;
     public static final int TYPE_MAT4 = 10;
     private final int type;
@@ -49,6 +50,7 @@ public final class GLUniform implements AutoCloseable {
 
     public static int getTypeFromString(String typeName) {
         return switch (typeName.toLowerCase(Locale.ROOT)) {
+            case "int" -> TYPE_INT;
             case "vec4" -> TYPE_VEC4;
             case "mat4" -> TYPE_MAT4;
             default -> throw new IllegalStateException("Unexpected value: " + typeName);
@@ -57,6 +59,7 @@ public final class GLUniform implements AutoCloseable {
 
     private static MemoryLayout layout(int type) {
         return switch (type) {
+            case TYPE_INT -> ValueLayout.JAVA_INT;
             case TYPE_VEC4 -> Vectorn.VEC4F;
             case TYPE_MAT4 -> Matrixn.MAT4F;
             default -> throw new IllegalStateException("Unexpected value: " + type);
@@ -65,6 +68,11 @@ public final class GLUniform implements AutoCloseable {
 
     private void markDirty() {
         dirty = true;
+    }
+
+    public void set(int x) {
+        markDirty();
+        buffer.set(ValueLayout.JAVA_INT, 0, x);
     }
 
     public void set(float x, float y, float z, float w) {
@@ -98,6 +106,10 @@ public final class GLUniform implements AutoCloseable {
 
         final boolean arb = program != null && GLLoader.getExtCapabilities().GL_ARB_separate_shader_objects;
         switch (type) {
+            case TYPE_INT -> {
+                if (arb) GL.programUniform1iv(program.id(), location, 1, buffer);
+                else GL.uniform1iv(location, 1, buffer);
+            }
             case TYPE_VEC4 -> {
                 if (arb) GL.programUniform4fv(program.id(), location, 1, buffer);
                 else GL.uniform4fv(location, 1, buffer);

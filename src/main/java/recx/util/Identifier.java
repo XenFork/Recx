@@ -20,13 +20,15 @@ package recx.util;
  * @author squid233
  * @since 0.1.0
  */
-public /* primitive */ record Identifier(String namespace, String path) {
+@ValueObject(primitive = true)
+public record Identifier(String namespace, String path) {
     public static final String DEFAULT_NAMESPACE = "recx";
     public static final String ASSETS = "assets";
 
     public static final String SHADERS = "shaders";
     public static final String TEXTURES = "textures";
 
+    public static final String PNG = ".png";
     public static final String JSON = ".json";
     public static final String VERT_SHADER = ".vert";
     public static final String FRAG_SHADER = ".frag";
@@ -53,16 +55,16 @@ public /* primitive */ record Identifier(String namespace, String path) {
         return namespace + '/' + path;
     }
 
-    public String toPath(String namespacePrefix) {
-        return namespacePrefix + '/' + toPath();
+    public String toPath(String beforeNamespace) {
+        return beforeNamespace + '/' + toPath();
     }
 
-    public String toPath(String namespacePrefix, String pathPrefix) {
-        return namespacePrefix + '/' + namespace + '/' + pathPrefix + '/' + path;
+    public String toPath(String beforeNamespace, String beforePath) {
+        return beforeNamespace + '/' + namespace + '/' + beforePath + '/' + path;
     }
 
-    public String toPath(String namespacePrefix, String pathPrefix, String suffix) {
-        return toPath(namespacePrefix, pathPrefix) + suffix;
+    public String toPath(String beforeNamespace, String beforePath, String afterPath) {
+        return toPath(beforeNamespace, beforePath) + afterPath;
     }
 
     @Override

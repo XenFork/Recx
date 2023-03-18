@@ -29,8 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static recx.util.Identifier.*;
-import static recx.util.JsonHelper.getFloat;
-import static recx.util.JsonHelper.getString;
+import static recx.util.JsonHelper.*;
 
 /**
  * @author squid233
@@ -41,6 +40,7 @@ public final class GLProgram implements AutoCloseable {
     public static final String PROJECTION_VIEW_MATRIX = "ProjectionViewMatrix";
     public static final String MODEL_MATRIX = "ModelMatrix";
     public static final String COLOR_MODULATOR = "ColorModulator";
+    public static final String SAMPLER0 = "Sampler0";
     private final int id;
     private final VertexFormat format;
     private final Map<String, GLUniform> uniforms = new HashMap<>();
@@ -69,6 +69,7 @@ public final class GLProgram implements AutoCloseable {
 
             GL.attachShader(id, vsh);
             GL.attachShader(id, fsh);
+            format.forEachElement((name, element) -> GL.bindAttribLocation(arena, id, element.index(), name));
             GL.linkProgram(id);
             if (GL.getProgrami(id, GL.LINK_STATUS) == GL.FALSE) {
                 throw new IllegalStateException("Failed to link the program " + identifier + ": " + GL.getProgramInfoLog(arena, id));
@@ -87,6 +88,7 @@ public final class GLProgram implements AutoCloseable {
 
                 final GLUniform uniform = new GLUniform(type, GL.getUniformLocation(arena, id, name));
                 switch (type) {
+                    case GLUniform.TYPE_INT -> uniform.set(getInt(values, 0));
                     case GLUniform.TYPE_VEC4 -> uniform.set(
                         getFloat(values, 0),
                         getFloat(values, 1),
