@@ -16,6 +16,8 @@
 
 package recx.client.render;
 
+import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.joml.Vector3d;
 import recx.world.entity.PlayerEntity;
 
@@ -25,8 +27,45 @@ import recx.world.entity.PlayerEntity;
  */
 public final class Camera {
     public final Vector3d position = new Vector3d();
+    private final Matrix4f projection = new Matrix4f();
+    private final Matrix4f view = new Matrix4f();
+    private final Matrix4f combined = new Matrix4f();
+    private final Matrix4f inverse = new Matrix4f();
 
     public void moveToPlayer(PlayerEntity player, double partialTick) {
-        position.set(player.prevPosition).lerp(player.position, partialTick);
+        player.prevPosition.lerp(player.position, partialTick, position);
+        update();
+    }
+
+    public void update() {
+        view.scaling(16f * 2f)
+            .translate(
+                (float) -position.x(),
+                (float) -position.y(),
+                (float) -position.z()
+            );
+        projection.mul(view, combined);
+        combined.invert(inverse);
+    }
+
+    public void update(float width, float height) {
+        projection.setOrthoSymmetric(width, height, -100f, 100f);
+        update();
+    }
+
+    public Matrix4fc projection() {
+        return projection;
+    }
+
+    public Matrix4fc view() {
+        return view;
+    }
+
+    public Matrix4fc combined() {
+        return combined;
+    }
+
+    public Matrix4fc inverse() {
+        return inverse;
     }
 }

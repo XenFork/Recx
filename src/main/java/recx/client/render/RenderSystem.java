@@ -70,7 +70,7 @@ public final class RenderSystem {
     }
 
     private static void updateCombined() {
-        combinedMatrix.set(projectionMatrix).mul(viewMatrix);
+        projectionMatrix.mul(viewMatrix, combinedMatrix);
         updateUniform(GLProgram.PROJECTION_VIEW_MATRIX, u -> u.set(combinedMatrix));
     }
 

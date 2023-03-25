@@ -25,4 +25,9 @@ public class AirBlock extends Block {
     public boolean isAir() {
         return true;
     }
+
+    @Override
+    public boolean canBeReplaced() {
+        return true;
+    }
 }

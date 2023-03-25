@@ -17,6 +17,9 @@
 package recx.client.gl;
 
 import org.overrun.glib.gl.GL;
+import org.overrun.glib.util.MemoryStack;
+
+import java.util.Arrays;
 
 /**
  * @author squid233
@@ -27,6 +30,7 @@ public final class GLStateManager {
     private static int textureBinding2D = 0;
     private static int vertexArrayBinding = 0;
     private static int arrayBufferBinding = 0;
+    private static int[] viewport = {0, 0, -1, -1};
 
     public static void useProgram(int program) {
         if (currentProgram != program) {
@@ -70,5 +74,25 @@ public final class GLStateManager {
 
     public static int arrayBufferBinding() {
         return arrayBufferBinding;
+    }
+
+    public static void setViewport(int x, int y, int width, int height) {
+        viewport();
+        if (viewport[0] != x || viewport[1] != y || viewport[2] != width || viewport[3] != height) {
+            viewport[0] = x;
+            viewport[1] = y;
+            viewport[2] = width;
+            viewport[3] = height;
+            GL.viewport(x, y, width, height);
+        }
+    }
+
+    public static int[] viewport() {
+        if (viewport[2] < 0 || viewport[3] < 0) {
+            try (MemoryStack stack = MemoryStack.stackPush()) {
+                GL.getIntegerv(stack, GL.VIEWPORT, viewport);
+            }
+        }
+        return Arrays.copyOf(viewport, viewport.length);
     }
 }

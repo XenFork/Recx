@@ -36,19 +36,19 @@ public final class JsonHelper {
         return element.getAsString();
     }
 
-    public static int getInt(JsonArray array, int index) {
+    private static JsonElement getNumber(JsonArray array, int index) {
         final JsonElement element = array.get(index);
         if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
             throw new IllegalArgumentException("array[" + index + "] isn't a number");
         }
-        return element.getAsInt();
+        return element;
+    }
+
+    public static int getInt(JsonArray array, int index) {
+        return getNumber(array, index).getAsInt();
     }
 
     public static float getFloat(JsonArray array, int index) {
-        final JsonElement element = array.get(index);
-        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
-            throw new IllegalArgumentException("array[" + index + "] isn't a number");
-        }
-        return element.getAsFloat();
+        return getNumber(array, index).getAsFloat();
     }
 }

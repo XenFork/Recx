@@ -39,6 +39,10 @@ public class Block {
         return false;
     }
 
+    public boolean canBeReplaced() {
+        return false;
+    }
+
     @Deprecated(since = "0.1.0")
     public void render(Tessellator t, double partialTick, int x, int y, int z) {
         if (texture == null) {
@@ -50,7 +54,7 @@ public class Block {
         final float u1 = atlas.normalizeByWidth(atlas.getU1(texture));
         final float v0 = atlas.normalizeByHeight(atlas.getV0(texture));
         final float v1 = atlas.normalizeByHeight(atlas.getV1(texture));
-        t.indices(0, 1, 2, 2, 3, 0).color(0xffffffff);
+        t.indices(0, 1, 2, 2, 3, 0).color(z == 1 ? 0xffffffff : 0x808080ff);
         t.vertex(x, y + 1, z).texCoords(u0, v0).emit();
         t.vertex(x, y, z).texCoords(u0, v1).emit();
         t.vertex(x + 1, y, z).texCoords(u1, v1).emit();

@@ -56,6 +56,12 @@ public final class World {
         return blocks[(y * depth + z) * width + x];
     }
 
+    public boolean isInsideWorld(int x, int y, int z) {
+        return x >= 0 && x < width &&
+               y >= 0 && y < height &&
+               z >= 0 && z < depth;
+    }
+
     public int width() {
         return width;
     }

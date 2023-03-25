@@ -16,7 +16,6 @@
 
 package recx.client;
 
-import org.joml.Vector3d;
 import org.overrun.glib.RuntimeHelper;
 import org.overrun.glib.gl.GL;
 import org.overrun.glib.gl.GLLoader;
@@ -26,13 +25,17 @@ import org.overrun.glib.glfw.GLFWVidMode;
 import org.overrun.glib.util.MemoryStack;
 import org.overrun.glib.util.value.Value2;
 import org.overrun.timer.Timer;
+import recx.client.gl.GLStateManager;
+import recx.client.render.Camera;
 import recx.client.render.GameRenderer;
 import recx.client.render.RenderSystem;
 import recx.client.render.WorldRenderer;
 import recx.client.texture.NativeImage;
 import recx.client.texture.TextureAtlas;
 import recx.util.Identifier;
+import recx.world.HitResult;
 import recx.world.World;
+import recx.world.block.Blocks;
 import recx.world.entity.PlayerEntity;
 
 import java.io.IOException;
@@ -49,6 +52,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
     private static final RecxClient INSTANCE = new RecxClient();
     private MemorySegment window;
     private Keyboard keyboard;
+    private Mouse mouse;
     private int width;
     private int height;
     private Timer timer;
@@ -75,6 +79,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
 
         // callbacks
         GLFW.setFramebufferSizeCallback(window, (window1, width, height) -> resize(width, height));
+        GLFW.setCursorPosCallback(window, (window1, xpos, ypos) -> onCursorPos(xpos, ypos));
 
         // align to center
         try (Arena arena = Arena.openConfined()) {
@@ -91,13 +96,14 @@ public final class RecxClient implements Runnable, AutoCloseable {
         GLLoader.loadConfined(true, GLFW::getProcAddress);
 
         keyboard = new Keyboard(window);
+        mouse = new Mouse(window);
 
         // init GL
         GL.clearColor(.4f, .6f, .9f, 1f);
         gameRenderer = new GameRenderer();
         gameRenderer.init();
         world = new World(256, 256, 2);
-        worldRenderer = new WorldRenderer(world);
+        worldRenderer = new WorldRenderer(this, world);
         player = new PlayerEntity();
         player.keyboard = keyboard;
 
@@ -121,7 +127,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
     }
 
     private static Map<Identifier, NativeImage> images(Identifier... ids) {
-        var map = HashMap.<Identifier, NativeImage>newHashMap(ids.length);
+        final Map<Identifier, NativeImage> map = HashMap.newHashMap(ids.length);
         for (Identifier id : ids) {
             try {
                 map.put(id, NativeImage.load(id.toTexturePath()));
@@ -137,26 +143,39 @@ public final class RecxClient implements Runnable, AutoCloseable {
     }
 
     private void update() {
+        final HitResult hitResult = worldRenderer.hitResult();
+        if (hitResult != null && !hitResult.miss) {
+            final int x = hitResult.x;
+            final int y = hitResult.y;
+            final int z = hitResult.z;
+            if (mouse.isButtonDown(GLFW.MOUSE_BUTTON_LEFT)) {
+                world.setBlock(Blocks.AIR, x, y, z);
+            }
+            if (mouse.isButtonDown(GLFW.MOUSE_BUTTON_RIGHT) && world.getBlock(x, y, z).canBeReplaced()) {
+                world.setBlock(Blocks.STONE, x, y, z);
+            }
+        }
     }
 
     private void resize(int width, int height) {
-        GL.viewport(0, 0, width, height);
+        GLStateManager.setViewport(0, 0, width, height);
         this.width = width;
         this.height = height;
     }
 
+    private void onCursorPos(double cursorX, double cursorY) {
+        mouse.updateCursor(cursorX, cursorY);
+    }
+
     private void renderWorld(double partialTick) {
-        gameRenderer.camera().moveToPlayer(player, partialTick);
-        final Vector3d position = gameRenderer.camera().position;
+        // update camera
+        final Camera camera = gameRenderer.camera();
+        camera.moveToPlayer(player, partialTick);
+        camera.update(width, height);
         // update projection view matrix
-        RenderSystem.setProjectionMatrix(RenderSystem.projectionMatrix().setOrthoSymmetric(width, height, -100f, 100f));
-        RenderSystem.setViewMatrix(RenderSystem.viewMatrix()
-            .scaling(16f * 2f)
-            .translate(
-                (float) -position.x(),
-                (float) -position.y(),
-                (float) -position.z()
-            ));
+        RenderSystem.setProjectionViewMatrix(camera.projection(), camera.view());
+
+        worldRenderer.pick(gameRenderer.camera());
 
         GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
         worldRenderer.render(partialTick);
@@ -201,6 +220,10 @@ public final class RecxClient implements Runnable, AutoCloseable {
 
     public Keyboard keyboard() {
         return keyboard;
+    }
+
+    public Mouse mouse() {
+        return mouse;
     }
 
     public int width() {

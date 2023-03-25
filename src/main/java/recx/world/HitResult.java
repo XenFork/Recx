@@ -14,40 +14,18 @@
  * copies or substantial portions of the Software.
  */
 
-package recx.client.gl;
+package recx.world;
 
-import org.overrun.glib.gl.GL;
+import recx.util.ValueObject;
+import recx.world.block.Block;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public enum GLDrawMode {
-    LINES(GL.LINES, 2, 2),
-    LINE_LOOP(GL.LINE_LOOP, 2, 2),
-    TRIANGLES(GL.TRIANGLES, 3, 3),
-    QUADS(GL.TRIANGLES, 4, 6),
-    ;
-
-    private final int enumValue;
-    private final int vertexCount;
-    private final int indexCount;
-
-    GLDrawMode(int enumValue, int vertexCount, int indexCount) {
-        this.enumValue = enumValue;
-        this.vertexCount = vertexCount;
-        this.indexCount = indexCount;
-    }
-
-    public int enumValue() {
-        return enumValue;
-    }
-
-    public int vertexCount() {
-        return vertexCount;
-    }
-
-    public int indexCount() {
-        return indexCount;
-    }
+@ValueObject
+public class HitResult {
+    public int x, y, z;
+    public Block block;
+    public boolean miss;
 }

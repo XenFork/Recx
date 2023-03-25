@@ -16,25 +16,36 @@
 
 package recx.client.render;
 
+import org.joml.Vector3f;
+import recx.client.Mouse;
 import recx.client.RecxClient;
+import recx.client.gl.GLDrawMode;
+import recx.client.gl.GLStateManager;
 import recx.client.texture.TextureAtlas;
+import recx.world.HitResult;
 import recx.world.World;
 import recx.world.block.Block;
+import recx.world.block.Blocks;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
 public final class WorldRenderer {
+    private final RecxClient client;
     private final World world;
+    private final Vector3f unproject = new Vector3f();
+    private final HitResult hitResult = new HitResult();
 
-    public WorldRenderer(World world) {
+    public WorldRenderer(RecxClient client, World world) {
+        this.client = client;
         this.world = world;
     }
 
     public void render(double partialTick) {
+        // render world
         RenderSystem.bindTexture2D(TextureAtlas.BLOCK);
-        RenderSystem.setProgram(RecxClient.get().gameRenderer().positionColorTex());
+        RenderSystem.setProgram(client.gameRenderer().positionColorTex());
         final Tessellator t = Tessellator.getInstance();
         t.begin();
         for (int x = 0; x < world.width(); x++) {
@@ -48,6 +59,44 @@ public final class WorldRenderer {
             }
         }
         t.end();
+        RenderSystem.bindTexture2D(0);
+        // render outline
+        if (!hitResult.miss) {
+            RenderSystem.setProgram(client.gameRenderer().positionColor());
+            final float x0 = hitResult.x;
+            final float y0 = hitResult.y;
+            final float x1 = x0 + 1f;
+            final float y1 = y0 + 1f;
+            t.begin(GLDrawMode.LINE_LOOP);
+            t.indices(0, 1, 2, 3).color(0x000000ff);
+            t.vertex(x0, y1).emit();
+            t.vertex(x0, y0).emit();
+            t.vertex(x1, y0).emit();
+            t.vertex(x1, y1).emit();
+            t.end();
+        }
         RenderSystem.setProgram(null);
+    }
+
+    public void pick(Camera camera) {
+        final Mouse mouse = client.mouse();
+        camera.inverse().unprojectInv((float) mouse.cursorX(),
+            client.height() - (float) mouse.cursorY(),
+            0f,
+            GLStateManager.viewport(),
+            unproject);
+        final int x = (int) Math.floor(unproject.x());
+        final int y = (int) Math.floor(unproject.y());
+        final int z = 1;
+        final boolean miss = !world.isInsideWorld(x, y, z);
+        hitResult.x = x;
+        hitResult.y = y;
+        hitResult.z = z;
+        hitResult.miss = miss;
+        hitResult.block = miss ? Blocks.AIR : world.getBlock(x, y, z);
+    }
+
+    public HitResult hitResult() {
+        return hitResult;
     }
 }
