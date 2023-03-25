@@ -52,7 +52,7 @@ dependencies {
     implementation "io.github.over-run:bin-packing:0.2.0"
     implementation "io.github.over-run:bin-tag:0.1.0"
     implementation "io.github.over-run:timer:0.2.0"
-    implementation "io.github.over-run:unifont:15.0.01.1"
+    implementation "io.github.over-run:unifont:15.0.01.2"
 
     implementation "com.google.code.gson:gson:2.10.1"
 

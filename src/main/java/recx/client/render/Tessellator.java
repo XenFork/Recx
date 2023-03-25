@@ -17,6 +17,7 @@
 package recx.client.render;
 
 import org.overrun.glib.gl.GL;
+import recx.client.gl.GLDrawMode;
 import recx.client.gl.GLStateManager;
 import recx.client.gl.VertexFormat;
 
@@ -30,12 +31,15 @@ import static java.lang.foreign.ValueLayout.*;
  * @since 0.1.0
  */
 public final class Tessellator implements AutoCloseable {
-    private static final long BUFFER_SIZE = 10000L * VertexFormat.POSITION_COLOR_TEX.stride();
-    private static final long INDEX_BUFFER_SIZE = 10000 * Integer.BYTES;
+    private static final long VERTEX_COUNT = 15000L;
+    private static final long INDEX_COUNT = 20000L;
+    private static final long BUFFER_SIZE = VERTEX_COUNT * VertexFormat.POSITION_COLOR_TEX.stride();
+    private static final long INDEX_BUFFER_SIZE = INDEX_COUNT * Integer.BYTES;
     private static Tessellator instance;
     private final Arena arena = Arena.openConfined();
     private final MemorySegment buffer = arena.allocate(BUFFER_SIZE);
     private final MemorySegment indexBuffer = arena.allocate(INDEX_BUFFER_SIZE);
+    private GLDrawMode drawMode = GLDrawMode.QUADS;
     private float x, y, z;
     private byte r = -1, g = -1, b = -1, a = -1;
     private float u, v;
@@ -65,23 +69,20 @@ public final class Tessellator implements AutoCloseable {
         indexCount = 0;
     }
 
-    public void begin() {
+    public void begin(GLDrawMode drawMode) {
         clear();
+        this.drawMode = drawMode;
+    }
+
+    public void begin() {
+        begin(GLDrawMode.QUADS);
     }
 
     public void end() {
-        end(GL.TRIANGLES);
-    }
-
-    public void end(int mode) {
-        flush(mode);
+        flush();
     }
 
     public void flush() {
-        flush(GL.TRIANGLES);
-    }
-
-    public void flush(int mode) {
         if (vertexCount <= 0) return;
 
         final boolean noVbo = vbo <= 0;
@@ -108,7 +109,7 @@ public final class Tessellator implements AutoCloseable {
             GL.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, 0, Integer.toUnsignedLong(indexCount) << 2, indexBuffer);
         }
 
-        GL.drawElements(mode, indexCount, GL.UNSIGNED_INT, MemorySegment.NULL);
+        GL.drawElements(drawMode.enumValue(), indexCount, GL.UNSIGNED_INT, MemorySegment.NULL);
 
         GLStateManager.bindVertexArray(0);
 
@@ -148,11 +149,12 @@ public final class Tessellator implements AutoCloseable {
         return this;
     }
 
-    public void indices(int... indices) {
+    public Tessellator indices(int... indices) {
         for (int index : indices) {
             indexBuffer.setAtIndex(JAVA_INT, indexCount, index + vertexCount);
             indexCount++;
         }
+        return this;
     }
 
     public void emit() {
@@ -170,6 +172,11 @@ public final class Tessellator implements AutoCloseable {
         buffer.set(JAVA_FLOAT_UNALIGNED, offset + 20, v);
         offset += 24;
         vertexCount++;
+
+        final int count = drawMode.vertexCount();
+        if (vertexCount % count == 0 && vertexCount >= VERTEX_COUNT - count) {
+            flush();
+        }
     }
 
     @Override

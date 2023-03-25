@@ -14,15 +14,38 @@
  * copies or substantial portions of the Software.
  */
 
-package recx.world.block;
+package recx.client.gl;
+
+import org.overrun.glib.gl.GL;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public class AirBlock extends Block {
-    @Override
-    public boolean isAir() {
-        return true;
+public enum GLDrawMode {
+    TRIANGLES(GL.TRIANGLES, 3, 3),
+    QUADS(GL.TRIANGLES, 4, 6),
+    ;
+
+    private final int enumValue;
+    private final int vertexCount;
+    private final int indexCount;
+
+    GLDrawMode(int enumValue, int vertexCount, int indexCount) {
+        this.enumValue = enumValue;
+        this.vertexCount = vertexCount;
+        this.indexCount = indexCount;
+    }
+
+    public int enumValue() {
+        return enumValue;
+    }
+
+    public int vertexCount() {
+        return vertexCount;
+    }
+
+    public int indexCount() {
+        return indexCount;
     }
 }

@@ -28,12 +28,18 @@ import org.overrun.glib.util.value.Value2;
 import org.overrun.timer.Timer;
 import recx.client.render.GameRenderer;
 import recx.client.render.RenderSystem;
-import recx.client.render.Tessellator;
+import recx.client.render.WorldRenderer;
+import recx.client.texture.NativeImage;
+import recx.client.texture.TextureAtlas;
 import recx.util.Identifier;
+import recx.world.World;
 import recx.world.entity.PlayerEntity;
 
+import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentScope;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author squid233
@@ -47,6 +53,8 @@ public final class RecxClient implements Runnable, AutoCloseable {
     private int height;
     private Timer timer;
     private GameRenderer gameRenderer;
+    private World world;
+    private WorldRenderer worldRenderer;
     private PlayerEntity player;
 
     private void init() {
@@ -69,12 +77,14 @@ public final class RecxClient implements Runnable, AutoCloseable {
         GLFW.setFramebufferSizeCallback(window, (window1, width, height) -> resize(width, height));
 
         // align to center
-        final GLFWVidMode.Value videoMode = GLFW.getVideoMode(SegmentScope.auto(), GLFW.getPrimaryMonitor());
-        if (videoMode != null) {
-            final Value2.OfInt windowSize = GLFW.getWindowSize(window);
-            GLFW.setWindowPos(window,
-                (videoMode.width() - windowSize.x()) / 2,
-                (videoMode.height() - windowSize.y()) / 2);
+        try (Arena arena = Arena.openConfined()) {
+            final GLFWVidMode.Value videoMode = GLFW.getVideoMode(arena, GLFW.getPrimaryMonitor());
+            if (videoMode != null) {
+                final Value2.OfInt windowSize = GLFW.getWindowSize(window);
+                GLFW.setWindowPos(window,
+                    (videoMode.width() - windowSize.x()) / 2,
+                    (videoMode.height() - windowSize.y()) / 2);
+            }
         }
 
         GLFW.makeContextCurrent(window);
@@ -86,8 +96,21 @@ public final class RecxClient implements Runnable, AutoCloseable {
         GL.clearColor(.4f, .6f, .9f, 1f);
         gameRenderer = new GameRenderer();
         gameRenderer.init();
+        world = new World(256, 256, 2);
+        worldRenderer = new WorldRenderer(world);
         player = new PlayerEntity();
         player.keyboard = keyboard;
+
+        // block atlas
+        final TextureAtlas atlas = new TextureAtlas();
+        atlas.pack(images(
+            Identifier.recx("block/bedrock"),
+            Identifier.recx("block/cobblestone"),
+            Identifier.recx("block/dirt"),
+            Identifier.recx("block/grass_block_side"),
+            Identifier.recx("block/stone")
+        ));
+        RenderSystem.putTexture2D(TextureAtlas.BLOCK, atlas);
 
         final Value2.OfInt framebufferSize = GLFW.getFramebufferSize(window);
         resize(framebufferSize.x(), framebufferSize.y());
@@ -95,6 +118,18 @@ public final class RecxClient implements Runnable, AutoCloseable {
         GLFW.showWindow(window);
 
         timer = Timer.ofGetter(20.0, GLFW::getTime);
+    }
+
+    private static Map<Identifier, NativeImage> images(Identifier... ids) {
+        var map = HashMap.<Identifier, NativeImage>newHashMap(ids.length);
+        for (Identifier id : ids) {
+            try {
+                map.put(id, NativeImage.load(id.toTexturePath()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return map;
     }
 
     private void tick() {
@@ -114,7 +149,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
         gameRenderer.camera().moveToPlayer(player, partialTick);
         final Vector3d position = gameRenderer.camera().position;
         // update projection view matrix
-        RenderSystem.setProjectionMatrix(RenderSystem.projectionMatrix().setOrthoSymmetric(width, height, -10f, 10f));
+        RenderSystem.setProjectionMatrix(RenderSystem.projectionMatrix().setOrthoSymmetric(width, height, -100f, 100f));
         RenderSystem.setViewMatrix(RenderSystem.viewMatrix()
             .scaling(16f * 2f)
             .translate(
@@ -124,18 +159,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
             ));
 
         GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-
-        RenderSystem.bindTexture2D(Identifier.recx("block/dirt"));
-        RenderSystem.setProgram(gameRenderer.positionColorTex());
-        final Tessellator t = Tessellator.getInstance();
-        t.begin();
-        t.indices(0, 1, 2, 2, 3, 0);
-        t.vertex(0, 4, 0).color(0xff0000ff).texCoords(0f, 0f).emit();
-        t.vertex(0, 0, 0).color(0x00ff00ff).texCoords(0f, 1f).emit();
-        t.vertex(4, 0, 0).color(0x0000ffff).texCoords(1f, 1f).emit();
-        t.vertex(4, 4, 0).color(0xffffffff).texCoords(1f, 0f).emit();
-        t.end();
-        RenderSystem.setProgram(null);
+        worldRenderer.render(partialTick);
     }
 
     private void render(double partialTick) {

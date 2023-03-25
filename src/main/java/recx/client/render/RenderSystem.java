@@ -118,6 +118,12 @@ public final class RenderSystem {
         return textures.put(id, texture);
     }
 
+    @SuppressWarnings("unchecked")
+    public static <T extends Texture2D> T getTexture2D(Identifier id) {
+        final Texture2D texture = textures.get(id);
+        return texture != null ? (T) texture : null;
+    }
+
     public static void bindTexture2D(int texture) {
         GLStateManager.bindTexture2D(texture);
     }

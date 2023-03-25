@@ -32,12 +32,20 @@ public class PlayerEntity extends Entity {
 
         final double speedFactor = getSpeedFactor();
         double xo = 0.0;
+        double yo = 0.0;
         if (keyboard.isKeyDown(GLFW.KEY_A)) {
             xo -= speedFactor;
         }
         if (keyboard.isKeyDown(GLFW.KEY_D)) {
             xo += speedFactor;
         }
+        if (keyboard.isKeyDown(GLFW.KEY_LEFT_SHIFT)) {
+            yo -= speedFactor;
+        }
+        if (keyboard.isKeyDown(GLFW.KEY_SPACE)) {
+            yo += speedFactor;
+        }
         position.x += xo;
+        position.y += yo;
     }
 }

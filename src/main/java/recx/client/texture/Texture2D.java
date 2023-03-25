@@ -41,7 +41,7 @@ public class Texture2D implements Texture {
     }
 
     public Texture2D(Identifier id) {
-        this(id.toPath(Identifier.ASSETS, Identifier.TEXTURES, Identifier.PNG));
+        this(id.toTexturePath());
     }
 
     protected void setup() {

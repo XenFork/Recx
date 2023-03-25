@@ -67,6 +67,10 @@ public record Identifier(String namespace, String path) {
         return toPath(beforeNamespace, beforePath) + afterPath;
     }
 
+    public String toTexturePath() {
+        return toPath(ASSETS, TEXTURES, PNG);
+    }
+
     @Override
     public String toString() {
         return namespace + ':' + path;
