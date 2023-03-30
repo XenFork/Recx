@@ -14,33 +14,14 @@
  * copies or substantial portions of the Software.
  */
 
-package recx.world.block;
+package recx.client.font;
 
-import recx.registry.BuiltinRegistries;
 import recx.util.Identifier;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public class Block {
-    @Deprecated(since = "0.1.0")
-    public Identifier texture;
-
-    public final Identifier getId() {
-        return BuiltinRegistries.BLOCK.getId(this);
-    }
-
-    public boolean isAir() {
-        return false;
-    }
-
-    public boolean canBeReplaced() {
-        return false;
-    }
-
-    @Deprecated(since = "0.1.0")
-    public boolean isTextureTranslucent() {
-        return isAir();
-    }
+public final class Font {
+    public static final Identifier UNIFONT = new Identifier("_overrun", "unifont");
 }

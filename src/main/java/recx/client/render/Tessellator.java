@@ -30,7 +30,7 @@ import static java.lang.foreign.ValueLayout.*;
  * @author squid233
  * @since 0.1.0
  */
-public final class Tessellator implements AutoCloseable {
+public final class Tessellator implements Batch, AutoCloseable {
     private static final long VERTEX_COUNT = 15000L;
     private static final long INDEX_COUNT = 20000L;
     private static final long BUFFER_SIZE = VERTEX_COUNT * VertexFormat.POSITION_COLOR_TEX.stride();
@@ -74,14 +74,17 @@ public final class Tessellator implements AutoCloseable {
         this.drawMode = drawMode;
     }
 
+    @Override
     public void begin() {
         begin(GLDrawMode.QUADS);
     }
 
+    @Override
     public void end() {
         flush();
     }
 
+    @Override
     public void flush() {
         if (vertexCount <= 0) return;
 
@@ -116,6 +119,7 @@ public final class Tessellator implements AutoCloseable {
         clear();
     }
 
+    @Override
     public Tessellator vertex(float x, float y, float z) {
         this.x = x;
         this.y = y;
@@ -123,10 +127,13 @@ public final class Tessellator implements AutoCloseable {
         return this;
     }
 
+    @Override
     public Tessellator vertex(float x, float y) {
-        return vertex(x, y, 0.0f);
+        Batch.super.vertex(x, y);
+        return this;
     }
 
+    @Override
     public Tessellator color(byte r, byte g, byte b, byte a) {
         this.r = r;
         this.g = g;
@@ -135,20 +142,26 @@ public final class Tessellator implements AutoCloseable {
         return this;
     }
 
+    @Override
     public Tessellator color(int r, int g, int b, int a) {
-        return color((byte) r, (byte) g, (byte) b, (byte) a);
+        Batch.super.color(r, g, b, a);
+        return this;
     }
 
+    @Override
     public Tessellator color(int rgba) {
-        return color(rgba >>> 24, rgba >>> 16, rgba >>> 8, rgba);
+        Batch.super.color(rgba);
+        return this;
     }
 
+    @Override
     public Tessellator texCoords(float u, float v) {
         this.u = u;
         this.v = v;
         return this;
     }
 
+    @Override
     public Tessellator indices(int... indices) {
         for (int index : indices) {
             indexBuffer.setAtIndex(JAVA_INT, indexCount, index + vertexCount);
@@ -157,6 +170,7 @@ public final class Tessellator implements AutoCloseable {
         return this;
     }
 
+    @Override
     public void emit() {
         // position
         buffer.set(JAVA_FLOAT_UNALIGNED, offset, x);

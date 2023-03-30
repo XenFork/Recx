@@ -14,33 +14,38 @@
  * copies or substantial portions of the Software.
  */
 
-package recx.world.block;
-
-import recx.registry.BuiltinRegistries;
-import recx.util.Identifier;
+package recx.client.render;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public class Block {
-    @Deprecated(since = "0.1.0")
-    public Identifier texture;
+public interface Batch {
+    void begin();
 
-    public final Identifier getId() {
-        return BuiltinRegistries.BLOCK.getId(this);
+    void end();
+
+    void flush();
+
+    Batch indices(int... indices);
+
+    Batch vertex(float x, float y, float z);
+
+    default Batch vertex(float x, float y) {
+        return vertex(x, y, 0f);
     }
 
-    public boolean isAir() {
-        return false;
+    Batch color(byte r, byte g, byte b, byte a);
+
+    default Batch color(int r, int g, int b, int a) {
+        return color((byte) r, (byte) g, (byte) b, (byte) a);
     }
 
-    public boolean canBeReplaced() {
-        return false;
+    default Batch color(int rgba) {
+        return color(rgba >>> 24, rgba >>> 16, rgba >>> 8, rgba);
     }
 
-    @Deprecated(since = "0.1.0")
-    public boolean isTextureTranslucent() {
-        return isAir();
-    }
+    Batch texCoords(float u, float v);
+
+    void emit();
 }

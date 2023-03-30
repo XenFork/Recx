@@ -27,11 +27,13 @@ import recx.util.Identifier;
 public final class GameRenderer implements AutoCloseable {
     private GLProgram positionColorProgram;
     private GLProgram positionColorTexProgram;
+    private GLProgram textProgram;
     private final Camera camera = new Camera();
 
     public void init() {
         positionColorProgram = new GLProgram(Identifier.recx("core/position_color"), VertexFormat.POSITION_COLOR);
         positionColorTexProgram = new GLProgram(Identifier.recx("core/position_color_tex"), VertexFormat.POSITION_COLOR_TEX);
+        textProgram = new GLProgram(Identifier.recx("core/text"), VertexFormat.POSITION_COLOR_TEX);
     }
 
     public GLProgram positionColor() {
@@ -42,6 +44,10 @@ public final class GameRenderer implements AutoCloseable {
         return positionColorTexProgram;
     }
 
+    public GLProgram text() {
+        return textProgram;
+    }
+
     public Camera camera() {
         return camera;
     }
@@ -50,6 +56,7 @@ public final class GameRenderer implements AutoCloseable {
     public void close() {
         positionColorProgram.close();
         positionColorTexProgram.close();
+        textProgram.close();
         Tessellator.free();
     }
 }

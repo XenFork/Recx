@@ -16,12 +16,10 @@
 
 package recx.client.texture;
 
-import org.overrun.glib.RuntimeHelper;
 import org.overrun.glib.gl.GL;
+import org.overrun.glib.stb.STBImage;
 import recx.client.render.RenderSystem;
 import recx.util.Identifier;
-
-import java.io.IOException;
 
 /**
  * @author squid233
@@ -37,7 +35,7 @@ public class Texture2D implements Texture {
 
     public Texture2D(String filename) {
         this();
-        load(filename);
+        load(filename, NativeImage.Param.rgba());
     }
 
     public Texture2D(Identifier id) {
@@ -54,25 +52,25 @@ public class Texture2D implements Texture {
         }
     }
 
-    public void load(String filename) {
-        setup();
-        try (NativeImage image = NativeImage.load(filename)) {
-            width = image.width();
-            height = image.height();
-            GL.texImage2D(GL.TEXTURE_2D,
-                0,
-                GL.RGBA,
-                width,
-                height,
-                0,
-                GL.RGBA,
-                GL.UNSIGNED_BYTE,
-                image.data());
-        } catch (IOException e) {
-            // todo: replace with log
-            RuntimeHelper.apiLog("Failed to load texture " + filename);
-            e.printStackTrace();
+    public void load(String filename, NativeImage.Param param) {
+        try (NativeImage image = NativeImage.load(filename, param)) {
+            load(image);
         }
+    }
+
+    public void load(NativeImage image) {
+        setup();
+        width = image.width();
+        height = image.height();
+        GL.texImage2D(GL.TEXTURE_2D,
+            0,
+            GL.RGBA,
+            width,
+            height,
+            0,
+            image.param().channel() == STBImage.GREY ? GL.RED : GL.RGBA,
+            GL.UNSIGNED_BYTE,
+            image.data());
         RenderSystem.bindTexture2D(0);
     }
 

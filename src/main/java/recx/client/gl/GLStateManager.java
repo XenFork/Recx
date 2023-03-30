@@ -30,7 +30,12 @@ public final class GLStateManager {
     private static int textureBinding2D = 0;
     private static int vertexArrayBinding = 0;
     private static int arrayBufferBinding = 0;
-    private static int[] viewport = {0, 0, -1, -1};
+    private static final int[] viewport = {0, 0, -1, -1};
+    private static boolean blend = false;
+    private static int blendSrcRGB = GL.ONE;
+    private static int blendSrcAlpha = GL.ONE;
+    private static int blendDstRGB = GL.ZERO;
+    private static int blendDstAlpha = GL.ZERO;
 
     public static void useProgram(int program) {
         if (currentProgram != program) {
@@ -94,5 +99,53 @@ public final class GLStateManager {
             }
         }
         return Arrays.copyOf(viewport, viewport.length);
+    }
+
+    public static void enableBlend() {
+        if (!blend) {
+            blend = true;
+            GL.enable(GL.BLEND);
+        }
+    }
+
+    public static void disableBlend() {
+        if (blend) {
+            blend = false;
+            GL.disable(GL.BLEND);
+        }
+    }
+
+    public static void blendFunc(int sfactor, int dfactor) {
+        blendFuncSeparate(sfactor, dfactor, sfactor, dfactor);
+    }
+
+    public static void blendFuncSeparate(int sfactorRGB, int dfactorRGB, int sfactorAlpha, int dfactorAlpha) {
+        if (blendSrcRGB != sfactorRGB || blendSrcAlpha != sfactorAlpha || blendDstRGB != dfactorRGB || blendDstAlpha != dfactorAlpha) {
+            blendSrcRGB = sfactorRGB;
+            blendSrcAlpha = sfactorAlpha;
+            blendDstRGB = dfactorRGB;
+            blendDstAlpha = dfactorAlpha;
+            GL.blendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+        }
+    }
+
+    public static boolean isBlendEnabled() {
+        return blend;
+    }
+
+    public static int blendSrcRGB() {
+        return blendSrcRGB;
+    }
+
+    public static int blendSrcAlpha() {
+        return blendSrcAlpha;
+    }
+
+    public static int blendDstRGB() {
+        return blendDstRGB;
+    }
+
+    public static int blendDstAlpha() {
+        return blendDstAlpha;
     }
 }

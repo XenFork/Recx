@@ -28,6 +28,7 @@ import recx.util.Identifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author squid233
@@ -133,6 +134,15 @@ public final class RenderSystem {
     }
 
     public static void bindTexture2D(Identifier id) {
-        bindTexture2D(textures.computeIfAbsent(id, Texture2D::new));
+        bindTexture2D(id, Texture2D::new);
+    }
+
+    public static void bindTexture2D(Identifier id, Function<Identifier, Texture2D> mappingFunction) {
+        bindTexture2D(textures.computeIfAbsent(id, mappingFunction));
+    }
+
+    public static void deleteTextures() {
+        textures.values().forEach(Texture2D::close);
+        textures.clear();
     }
 }

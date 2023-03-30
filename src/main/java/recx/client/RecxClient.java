@@ -16,6 +16,7 @@
 
 package recx.client;
 
+import org.joml.Matrix4fStack;
 import org.overrun.glib.RuntimeHelper;
 import org.overrun.glib.gl.GL;
 import org.overrun.glib.gl.GLLoader;
@@ -25,20 +26,20 @@ import org.overrun.glib.glfw.GLFWVidMode;
 import org.overrun.glib.util.MemoryStack;
 import org.overrun.glib.util.value.Value2;
 import org.overrun.timer.Timer;
+import org.overrun.unifont.UnifontUtil;
+import recx.client.font.Font;
 import recx.client.gl.GLStateManager;
-import recx.client.render.Camera;
-import recx.client.render.GameRenderer;
-import recx.client.render.RenderSystem;
-import recx.client.render.WorldRenderer;
+import recx.client.render.*;
 import recx.client.texture.NativeImage;
+import recx.client.texture.Texture2D;
 import recx.client.texture.TextureAtlas;
 import recx.util.Identifier;
 import recx.world.HitResult;
 import recx.world.World;
+import recx.world.block.Block;
 import recx.world.block.Blocks;
 import recx.world.entity.PlayerEntity;
 
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.HashMap;
@@ -60,6 +61,8 @@ public final class RecxClient implements Runnable, AutoCloseable {
     private World world;
     private WorldRenderer worldRenderer;
     private PlayerEntity player;
+    private final Block[] hotBar = {Blocks.STONE, Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COBBLESTONE, Blocks.BEDROCK};
+    private int selected = 0;
 
     private void init() {
         if (!GLFW.init()) {
@@ -80,6 +83,8 @@ public final class RecxClient implements Runnable, AutoCloseable {
         // callbacks
         GLFW.setFramebufferSizeCallback(window, (window1, width, height) -> resize(width, height));
         GLFW.setCursorPosCallback(window, (window1, xpos, ypos) -> onCursorPos(xpos, ypos));
+        GLFW.setKeyCallback(window, (window1, key, scancode, action, mods) -> onKey(key, action));
+        GLFW.setScrollCallback(window, (window1, xoffset, yoffset) -> onScroll(xoffset, yoffset));
 
         // align to center
         try (Arena arena = Arena.openConfined()) {
@@ -100,6 +105,8 @@ public final class RecxClient implements Runnable, AutoCloseable {
 
         // init GL
         GL.clearColor(.4f, .6f, .9f, 1f);
+        GLStateManager.enableBlend();
+        GLStateManager.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
         gameRenderer = new GameRenderer();
         gameRenderer.init();
         world = new World(256, 256, 2);
@@ -129,11 +136,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
     private static Map<Identifier, NativeImage> images(Identifier... ids) {
         final Map<Identifier, NativeImage> map = HashMap.newHashMap(ids.length);
         for (Identifier id : ids) {
-            try {
-                map.put(id, NativeImage.load(id.toTexturePath()));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            map.put(id, NativeImage.load(id.toTexturePath(), NativeImage.Param.rgba()));
         }
         return map;
     }
@@ -152,7 +155,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
                 world.setBlock(Blocks.AIR, x, y, z);
             }
             if (mouse.isButtonDown(GLFW.MOUSE_BUTTON_RIGHT) && world.getBlock(x, y, z).canBeReplaced()) {
-                world.setBlock(Blocks.STONE, x, y, z);
+                world.setBlock(hotBar[selected], x, y, z);
             }
         }
     }
@@ -165,6 +168,24 @@ public final class RecxClient implements Runnable, AutoCloseable {
 
     private void onCursorPos(double cursorX, double cursorY) {
         mouse.updateCursor(cursorX, cursorY);
+    }
+
+    private void onKey(int key, int action) {
+        if (action == GLFW.PRESS) {
+            if (key >= GLFW.KEY_1 && key <= GLFW.KEY_5) {
+                selected = key - GLFW.KEY_1;
+            }
+        }
+    }
+
+    private void onScroll(double offsetX, double offsetY) {
+        final int y = (int) Math.floor(offsetY);
+        selected -= y;
+        if (selected < 0) {
+            selected = hotBar.length - 1;
+        } else if (selected >= hotBar.length) {
+            selected = 0;
+        }
     }
 
     private void renderWorld(double partialTick) {
@@ -181,8 +202,70 @@ public final class RecxClient implements Runnable, AutoCloseable {
         worldRenderer.render(partialTick);
     }
 
+    private void renderGui(double partialTick) {
+        RenderSystem.setProjectionMatrix(
+            RenderSystem.projectionMatrix().setOrtho(0, width, 0, height, -100, 100)
+        );
+        final Matrix4fStack view = RenderSystem.viewMatrix();
+        view.identity();
+        view.pushMatrix();
+        RenderSystem.setViewMatrix(view
+            .scaling(16f * 2f)
+            .translate(-1f, -1f, 0f)
+            .scale(1f / (16f * 2f))
+            .translate(width, height, 0f)
+            .scale(16f * 2f));
+        RenderSystem.setProgram(gameRenderer.positionColorTex());
+        view.popMatrix();
+
+        RenderSystem.bindTexture2D(TextureAtlas.BLOCK);
+        final Tessellator t = Tessellator.getInstance();
+        t.begin();
+        BlockRenderer.render(hotBar[selected], t, partialTick, 0, 0, 1);
+        t.end();
+        RenderSystem.bindTexture2D(0);
+
+        RenderSystem.setProgram(null);
+
+        RenderSystem.setViewMatrix(view);
+        RenderSystem.setProgram(gameRenderer.text());
+        RenderSystem.bindTexture2D(Font.UNIFONT, id -> {
+            final Texture2D texture = new Texture2D();
+            try (NativeImage image = NativeImage.load(id.toAssetPath("fonts", Identifier.PNG), NativeImage.Param.grey())) {
+                texture.load(image);
+            }
+            return texture;
+        });
+
+        t.begin();
+        t.color(0xffffffff);
+        final String text = "Recx";
+        int x0 = 0;
+        for (int i = 0, len = text.codePointCount(0, text.length()); i < len; i++) {
+            final int cp = text.codePointAt(i);
+            final int w = UnifontUtil.xAdvance(cp);
+            final float u0 = UnifontUtil.uv(UnifontUtil.xOffset(cp));
+            final float v0 = UnifontUtil.uv(UnifontUtil.yOffset(cp));
+            final float u1 = UnifontUtil.uv(UnifontUtil.xOffset(cp) + w);
+            final float v1 = UnifontUtil.uv(UnifontUtil.yOffset(cp) + UnifontUtil.yAdvance());
+            final float x1 = x0 + w;
+            final float y1 = UnifontUtil.yAdvance();
+            t.indices(0, 1, 2, 2, 3, 0);
+            t.texCoords(u0, v0).vertex(x0, y1).emit();
+            t.texCoords(u0, v1).vertex(x0, 0).emit();
+            t.texCoords(u1, v1).vertex(x1, 0).emit();
+            t.texCoords(u1, v0).vertex(x1, y1).emit();
+            x0 += w;
+        }
+        t.end();
+
+        RenderSystem.bindTexture2D(0);
+        RenderSystem.setProgram(null);
+    }
+
     private void render(double partialTick) {
         renderWorld(partialTick);
+        renderGui(partialTick);
 
         GLFW.swapBuffers(window);
     }
@@ -207,6 +290,7 @@ public final class RecxClient implements Runnable, AutoCloseable {
 
     @Override
     public void close() {
+        RenderSystem.deleteTextures();
         gameRenderer.close();
 
         Callbacks.free(window);

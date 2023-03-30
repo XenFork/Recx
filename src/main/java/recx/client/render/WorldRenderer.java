@@ -53,7 +53,16 @@ public final class WorldRenderer {
                 for (int z = 0; z < world.depth(); z++) {
                     final Block block = world.getBlock(x, y, z);
                     if (!block.isAir()) {
-                        block.render(t, partialTick, x, y, z);
+                        final boolean visible;
+                        if (z != 0) {
+                            visible = true;
+                        } else {
+                            final Block z1 = world.getBlock(x, y, 1);
+                            visible = z1.isAir() || z1.isTextureTranslucent();
+                        }
+                        if (visible) {
+                            BlockRenderer.render(block, t, partialTick, x, y, z);
+                        }
                     }
                 }
             }

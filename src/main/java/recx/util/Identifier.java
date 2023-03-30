@@ -67,8 +67,12 @@ public record Identifier(String namespace, String path) {
         return toPath(beforeNamespace, beforePath) + afterPath;
     }
 
+    public String toAssetPath(String beforePath, String afterPath) {
+        return toPath(ASSETS, beforePath, afterPath);
+    }
+
     public String toTexturePath() {
-        return toPath(ASSETS, TEXTURES, PNG);
+        return toAssetPath(TEXTURES, PNG);
     }
 
     @Override
