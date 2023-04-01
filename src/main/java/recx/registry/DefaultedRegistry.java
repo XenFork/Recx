@@ -29,16 +29,24 @@ import java.util.function.Supplier;
  * @since 0.1.0
  */
 public final class DefaultedRegistry<T> implements Registry<T> {
-    private final Map<Integer, T> rawIdToEntry = new LinkedHashMap<>();
-    private final Map<T, Integer> entryToRawId = new LinkedHashMap<>();
-    private final Map<Identifier, T> idToEntry = new LinkedHashMap<>();
-    private final Map<T, Identifier> entryToId = new LinkedHashMap<>();
+    private final Map<Integer, T> rawIdToEntry;
+    private final Map<T, Integer> entryToRawId;
+    private final Map<Identifier, T> idToEntry;
+    private final Map<T, Identifier> entryToId;
     private final Supplier<T> lazyDefault;
     private T defaultEntry;
     private int nextId = -1;
 
-    public DefaultedRegistry(Supplier<T> lazyDefault) {
+    public DefaultedRegistry(int numMappings, Supplier<T> lazyDefault) {
         this.lazyDefault = lazyDefault;
+        this.rawIdToEntry = LinkedHashMap.newLinkedHashMap(numMappings);
+        this.entryToRawId = LinkedHashMap.newLinkedHashMap(numMappings);
+        this.idToEntry = LinkedHashMap.newLinkedHashMap(numMappings);
+        this.entryToId = LinkedHashMap.newLinkedHashMap(numMappings);
+    }
+
+    public DefaultedRegistry(Supplier<T> lazyDefault) {
+        this(128, lazyDefault);
     }
 
     public T defaultEntry() {

@@ -16,11 +16,18 @@
 
 package recx.world.block;
 
+import recx.world.phys.AABBox;
+
 /**
  * @author squid233
  * @since 0.1.0
  */
 public class AirBlock extends Block {
+    @Override
+    public AABBox getCollisionShape() {
+        return EMPTY;
+    }
+
     @Override
     public boolean isAir() {
         return true;

@@ -1,6 +1,6 @@
 {
-  "vertex": "core/text",
-  "fragment": "core/text",
+  "vertex": "core/rendertype_text",
+  "fragment": "core/rendertype_text",
   "uniforms": {
     "ProjectionViewMatrix": {
       "type": "mat4",

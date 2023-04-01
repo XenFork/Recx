@@ -18,17 +18,28 @@ package recx.world.block;
 
 import recx.registry.BuiltinRegistries;
 import recx.util.Identifier;
+import recx.world.phys.AABBox;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
 public class Block {
+    public static final AABBox FULL_CUBE = AABBox.ofPos(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+    public static final AABBox EMPTY = null;
     @Deprecated(since = "0.1.0")
     public Identifier texture;
 
     public final Identifier getId() {
         return BuiltinRegistries.BLOCK.getId(this);
+    }
+
+    public AABBox getOutlineShape() {
+        return FULL_CUBE;
+    }
+
+    public AABBox getCollisionShape() {
+        return FULL_CUBE;
     }
 
     public boolean isAir() {

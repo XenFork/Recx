@@ -68,6 +68,18 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
+processResources {
+    def prop = [
+        "version"   : projVersion,
+        "isSnapshot": projVersion.endsWith("-SNAPSHOT")
+    ]
+    inputs.properties(prop)
+
+    filesMatching("version.json") {
+        expand(prop)
+    }
+}
+
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     if (JavaVersion.current() < javaVersion) {

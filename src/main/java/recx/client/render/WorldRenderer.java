@@ -26,6 +26,7 @@ import recx.world.HitResult;
 import recx.world.World;
 import recx.world.block.Block;
 import recx.world.block.Blocks;
+import recx.world.phys.AABBox;
 
 /**
  * @author squid233
@@ -71,18 +72,23 @@ public final class WorldRenderer {
         RenderSystem.bindTexture2D(0);
         // render outline
         if (!hitResult.miss) {
-            RenderSystem.setProgram(client.gameRenderer().positionColor());
-            final float x0 = hitResult.x;
-            final float y0 = hitResult.y;
-            final float x1 = x0 + 1f;
-            final float y1 = y0 + 1f;
-            t.begin(GLDrawMode.LINE_LOOP);
-            t.indices(0, 1, 2, 3).color(0x000000ff);
-            t.vertex(x0, y1).emit();
-            t.vertex(x0, y0).emit();
-            t.vertex(x1, y0).emit();
-            t.vertex(x1, y1).emit();
-            t.end();
+            final AABBox outline = hitResult.block.getOutlineShape();
+            if (outline != Block.EMPTY) {
+                RenderSystem.setProgram(client.gameRenderer().positionColor());
+                final int x = hitResult.x;
+                final int y = hitResult.y;
+                final float x0 = (float) (x - outline.minX());
+                final float y0 = (float) (y - outline.minY());
+                final float x1 = (float) (x + outline.maxX());
+                final float y1 = (float) (y + outline.maxY());
+                t.begin(GLDrawMode.LINE_LOOP);
+                t.indices(0, 1, 2, 3).color(0x000000ff);
+                t.vertex(x0, y1).emit();
+                t.vertex(x0, y0).emit();
+                t.vertex(x1, y0).emit();
+                t.vertex(x1, y1).emit();
+                t.end();
+            }
         }
         RenderSystem.setProgram(null);
     }

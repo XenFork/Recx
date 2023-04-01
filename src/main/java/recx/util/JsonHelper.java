@@ -25,10 +25,14 @@ import com.google.gson.JsonObject;
  * @since 0.1.0
  */
 public final class JsonHelper {
-    public static String getString(JsonObject object, String name) {
+    private static void check(JsonObject object, String name) {
         if (!object.has(name)) {
             throw new IllegalArgumentException('\'' + name + "' doesn't exist");
         }
+    }
+
+    public static String getString(JsonObject object, String name) {
+        check(object, name);
         final JsonElement element = object.get(name);
         if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
             throw new IllegalArgumentException('\'' + name + "' isn't a string");

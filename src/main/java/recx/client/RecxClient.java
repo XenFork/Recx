@@ -26,12 +26,10 @@ import org.overrun.glib.glfw.GLFWVidMode;
 import org.overrun.glib.util.MemoryStack;
 import org.overrun.glib.util.value.Value2;
 import org.overrun.timer.Timer;
-import org.overrun.unifont.UnifontUtil;
 import recx.client.font.Font;
 import recx.client.gl.GLStateManager;
 import recx.client.render.*;
 import recx.client.texture.NativeImage;
-import recx.client.texture.Texture2D;
 import recx.client.texture.TextureAtlas;
 import recx.util.Identifier;
 import recx.world.HitResult;
@@ -42,6 +40,7 @@ import recx.world.entity.PlayerEntity;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,13 +50,16 @@ import java.util.Map;
  */
 public final class RecxClient implements Runnable, AutoCloseable {
     private static final RecxClient INSTANCE = new RecxClient();
+    private GameVersion version;
     private MemorySegment window;
     private Keyboard keyboard;
     private Mouse mouse;
     private int width;
     private int height;
     private Timer timer;
+    private int elapsedTicks;
     private GameRenderer gameRenderer;
+    private Font font;
     private World world;
     private WorldRenderer worldRenderer;
     private PlayerEntity player;
@@ -73,8 +75,9 @@ public final class RecxClient implements Runnable, AutoCloseable {
         GLFW.windowHint(GLFW.CONTEXT_VERSION_MINOR, 2);
         GLFW.windowHint(GLFW.OPENGL_PROFILE, GLFW.OPENGL_CORE_PROFILE);
         GLFW.windowHint(GLFW.OPENGL_FORWARD_COMPAT, true);
+        version = GameVersion.getInstance();
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            window = GLFW.createWindow(stack, 864, 480, "Recx", MemorySegment.NULL, MemorySegment.NULL);
+            window = GLFW.createWindow(stack, 864, 480, "Recx " + version.version(), MemorySegment.NULL, MemorySegment.NULL);
         }
         if (window.address() == RuntimeHelper.NULL) {
             throw new IllegalStateException("Failed to create the window");
@@ -103,15 +106,29 @@ public final class RecxClient implements Runnable, AutoCloseable {
         keyboard = new Keyboard(window);
         mouse = new Mouse(window);
 
+        initGame();
+
+        final Value2.OfInt framebufferSize = GLFW.getFramebufferSize(window);
+        resize(framebufferSize.x(), framebufferSize.y());
+
+        GLFW.showWindow(window);
+
+        timer = Timer.ofGetter(20.0, GLFW::getTime);
+        elapsedTicks = 0;
+    }
+
+    private void initGame() {
         // init GL
         GL.clearColor(.4f, .6f, .9f, 1f);
         GLStateManager.enableBlend();
         GLStateManager.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+
         gameRenderer = new GameRenderer();
         gameRenderer.init();
+        font = Font.unifont();
         world = new World(256, 256, 2);
         worldRenderer = new WorldRenderer(this, world);
-        player = new PlayerEntity();
+        player = new PlayerEntity(world);
         player.keyboard = keyboard;
 
         // block atlas
@@ -124,13 +141,6 @@ public final class RecxClient implements Runnable, AutoCloseable {
             Identifier.recx("block/stone")
         ));
         RenderSystem.putTexture2D(TextureAtlas.BLOCK, atlas);
-
-        final Value2.OfInt framebufferSize = GLFW.getFramebufferSize(window);
-        resize(framebufferSize.x(), framebufferSize.y());
-
-        GLFW.showWindow(window);
-
-        timer = Timer.ofGetter(20.0, GLFW::getTime);
     }
 
     private static Map<Identifier, NativeImage> images(Identifier... ids) {
@@ -143,6 +153,8 @@ public final class RecxClient implements Runnable, AutoCloseable {
 
     private void tick() {
         player.tick();
+
+        elapsedTicks++;
     }
 
     private void update() {
@@ -208,6 +220,8 @@ public final class RecxClient implements Runnable, AutoCloseable {
         );
         final Matrix4fStack view = RenderSystem.viewMatrix();
         view.identity();
+
+        // render selected block
         view.pushMatrix();
         RenderSystem.setViewMatrix(view
             .scaling(16f * 2f)
@@ -227,36 +241,34 @@ public final class RecxClient implements Runnable, AutoCloseable {
 
         RenderSystem.setProgram(null);
 
+        renderDebugHud(partialTick);
+    }
+
+    private void renderDebugHud(double partialTick) {
+        final Matrix4fStack view = RenderSystem.viewMatrix();
+        final Tessellator t = Tessellator.getInstance();
+
         RenderSystem.setViewMatrix(view);
-        RenderSystem.setProgram(gameRenderer.text());
-        RenderSystem.bindTexture2D(Font.UNIFONT, id -> {
-            final Texture2D texture = new Texture2D();
-            try (NativeImage image = NativeImage.load(id.toAssetPath("fonts", Identifier.PNG), NativeImage.Param.grey())) {
-                texture.load(image);
-            }
-            return texture;
-        });
+        RenderSystem.setProgram(gameRenderer.renderTypeText());
+        RenderSystem.bindTexture2D(Font.UNIFONT);
 
         t.begin();
         t.color(0xffffffff);
-        final String text = "Recx";
-        int x0 = 0;
-        for (int i = 0, len = text.codePointCount(0, text.length()); i < len; i++) {
-            final int cp = text.codePointAt(i);
-            final int w = UnifontUtil.xAdvance(cp);
-            final float u0 = UnifontUtil.uv(UnifontUtil.xOffset(cp));
-            final float v0 = UnifontUtil.uv(UnifontUtil.yOffset(cp));
-            final float u1 = UnifontUtil.uv(UnifontUtil.xOffset(cp) + w);
-            final float v1 = UnifontUtil.uv(UnifontUtil.yOffset(cp) + UnifontUtil.yAdvance());
-            final float x1 = x0 + w;
-            final float y1 = UnifontUtil.yAdvance();
-            t.indices(0, 1, 2, 2, 3, 0);
-            t.texCoords(u0, v0).vertex(x0, y1).emit();
-            t.texCoords(u0, v1).vertex(x0, 0).emit();
-            t.texCoords(u1, v1).vertex(x1, 0).emit();
-            t.texCoords(u1, v0).vertex(x1, y1).emit();
-            x0 += w;
-        }
+        // version info
+        font.drawText(t, 0, height - font.yAdvance(), "Recx " + version.version());
+        // fps
+        font.drawText(t, 0, height - font.yAdvance() * 2, timer.framesPerSecond() + " fps");
+        // positions
+        font.drawText(t, 0, height - font.yAdvance() * 4, "Pos: " + player.position.toString(NumberFormat.getNumberInstance()));
+        // todo: can we use string templates?
+        font.drawText(t,
+            0,
+            height - font.yAdvance() * 5,
+            "Block: (" +
+            (int) Math.floor(player.position.x()) + ", " +
+            (int) Math.floor(player.position.y()) + ", " +
+            (int) Math.floor(player.position.z()) +
+            ")");
         t.end();
 
         RenderSystem.bindTexture2D(0);
@@ -298,6 +310,10 @@ public final class RecxClient implements Runnable, AutoCloseable {
         GLFW.terminate();
     }
 
+    public GameVersion version() {
+        return version;
+    }
+
     public MemorySegment window() {
         return window;
     }
@@ -322,8 +338,28 @@ public final class RecxClient implements Runnable, AutoCloseable {
         return timer;
     }
 
+    public int elapsedTicks() {
+        return elapsedTicks;
+    }
+
     public GameRenderer gameRenderer() {
         return gameRenderer;
+    }
+
+    public Font font() {
+        return font;
+    }
+
+    public World world() {
+        return world;
+    }
+
+    public WorldRenderer worldRenderer() {
+        return worldRenderer;
+    }
+
+    public PlayerEntity player() {
+        return player;
     }
 
     public static RecxClient get() {

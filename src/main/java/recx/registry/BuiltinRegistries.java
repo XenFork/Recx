@@ -24,5 +24,5 @@ import recx.world.block.Blocks;
  * @since 0.1.0
  */
 public final class BuiltinRegistries {
-    public static final DefaultedRegistry<Block> BLOCK = new DefaultedRegistry<>(() -> Blocks.AIR);
+    public static final DefaultedRegistry<Block> BLOCK = new DefaultedRegistry<>(1024, () -> Blocks.AIR);
 }
